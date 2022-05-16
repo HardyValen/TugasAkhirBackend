@@ -63,4 +63,4 @@ typings/
 # ignore public/videos
 public/videos/dash/
 public/videos/hls/
-public/videos/source/*
+public/videos/source/
