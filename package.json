@@ -5,9 +5,9 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
-    "rm-source": "rm -rf ./public/videos/source/*",
-    "rm-dash": "rm -rf ./public/videos/dash/*",
-    "rm-hls": "rm -rf ./public/videos/hls/*",
+    "rm-source": "rm -f ./public/videos/source/*.*",
+    "rm-dash": "rm -rf ./public/videos/dash/*.*",
+    "rm-hls": "rm -rf ./public/videos/hls/*.*",
     "rm-videos": "npm run rm-source & npm run rm-dash & npm run rm-hls"
   },
   "dependencies": {
