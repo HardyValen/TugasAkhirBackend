@@ -1,5 +1,4 @@
 var path      = require("path");
-var mimetypes = require("mime-types");
 
 module.exports = {
   PROJECT_DIR             : __dirname,

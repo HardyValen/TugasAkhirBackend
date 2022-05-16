@@ -3,7 +3,8 @@ var express       = require("express"),
     multer        = require("multer"),
     {v4: uuidv4}  = require("uuid"),
     mime          = require("mime-types"),
-    {videoModel}  = require("../db/schema/video");
+    {videoModel}  = require("../db/schema/video"),
+    minioClient   = require("../minio-client/config");
 
 var router    = express.Router();
 var storage   = multer.diskStorage({
@@ -15,6 +16,9 @@ var storage   = multer.diskStorage({
     cb(null, `${uuidv4()}-${Date.now()}.${extension}`)
   }
 })
+
+
+
 var upload    = multer({
   storage     : storage,
   fileFilter  : function(req, file, cb) {
@@ -34,6 +38,16 @@ function checkFileType(file, cb){
   }
 }
 
+router.get("/minio-status", function(req, res, next) {
+  minioClient.listBuckets()
+    .then((data) => {
+      res.send(JSON.stringify(data));
+    })
+    .catch((e) => {
+      res.status(500).send(JSON.stringify(e.message))
+    });
+})
+
 router.get("/", function(req, res, next) {
   res.sendFile(path.join(SETTINGS.PUBLIC_DIR, "upload-video.html"));
 });
@@ -43,11 +57,12 @@ router.post(
   upload.single('video'),
   function(req, res, next) {
     try {
-      new videoModel(req.file).save(function (err) {
+      new videoModel({...req.file, isStreamable: false}).save(function (err) {
         if (err) throw new Error(err.message);
       });
-
       res.status(201).send("OK");
+
+      
     } catch (error) {
       res.status(500).send(error.message);
     }

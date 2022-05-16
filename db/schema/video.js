@@ -6,7 +6,8 @@ const videoSchema = new mongoose.Schema({
   "mimetype"      : "string",
   "path"          : "string",
   "filename"      : "string",
-  "size"          : "number"
+  "size"          : "number",
+  "isStreamable"  : "boolean"
 })
 
 const videoModel  = mongoose.model("video", videoSchema)
