@@ -5,7 +5,9 @@ var express       = require('express'),
     bodyParser    = require("body-parser"),
     cors          = require("cors"),
     db            = require("./db/config"),
-    SETTINGS      = require("./settings");
+    SETTINGS      = require("./settings"),
+    transcoder    = require("./encoder/ffmpeg-wasm")
+    fs            = require("fs");
 
 global.SETTINGS = SETTINGS
 
@@ -24,5 +26,14 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 
 app.use('/upload', uploadRouter);
+
+// transcoder(
+//   path.join(SETTINGS.PUBLIC_DIR, "giorgio.mp4"),
+//   path.join(SETTINGS.PROJECT_DIR, ".tmp"),
+//   "mp4"
+// )
+  
+  // let x = path.join(SETTINGS.PUBLIC_DIR, "videos/dash");
+// console.log(path.join(x, "test.mpd"));
 
 module.exports = app;

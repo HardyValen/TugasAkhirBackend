@@ -8,7 +8,7 @@ const mime          = require("mime-types");
 const {videoModel}  = require("../db/schema/video");
 const minioClient   = require("../minio-client/config");
 const fs            = require("fs");
-const { createFFmpeg, fetchFile } = require("@ffmpeg/ffmpeg");
+// const { createFFmpeg, fetchFile } = require("@ffmpeg/ffmpeg");
 const morgan = require("morgan");
 
 var router    = express.Router();
@@ -16,7 +16,7 @@ var router    = express.Router();
 // Disk Storage
 var storage   = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(SETTINGS.PUBLIC_DIR, "videos/source/"))
+    cb(null, path.join(SETTINGS.PUBLIC_DIR, ".tmp/source"))
   },
   filename: function(req, file, cb) {
     let extension = mime.extension(file.mimetype);
@@ -65,7 +65,10 @@ router.post(
   "/",  
   upload.single('video'),
   function(req, res, next) {
-    let tmp = path.join(SETTINGS.PUBLIC_DIR, `videos/source/${req.file.filename}`);
+    let tmpName = `${uuidv4()}-${Date.now()}`;
+
+    let tmpSource = path.join(SETTINGS.PROJECT_DIR, `.tmp/source/${req.file.filename}`);
+    let tmpOutputDir = path.join(SETTINGS.PROJECT_DIR, `.tmp/output`)
 
     try {
       new videoModel({...req.file, isStreamable: false}).save(function (err, data) {
@@ -76,7 +79,7 @@ router.post(
         };
         
         // save object to minio
-        let stream = fs.createReadStream(tmp)
+        let stream = fs.createReadStream(tmpSource)
         minioClient.putObject(
           process.env.MINIO_VIDEO_BUCKET_NAME,
           req.file.filename,
@@ -84,11 +87,11 @@ router.post(
           async (e) => {
             if (e) {
               await videoModel.remove({_id: tmpID})
-              fs.unlinkSync(tmp);
+              fs.unlinkSync(tmpSource);
               res.status(500).send(e);
             } else {
               // delete temporary file
-              fs.unlinkSync(tmp);
+              fs.unlinkSync(tmpSource);
 
               // update document
               await videoModel.updateOne({_id: tmpID}, {isStreamable: true});
@@ -105,6 +108,12 @@ router.post(
     }
   }
 )
+
+// transcoder(
+//   path.join(SETTINGS.PUBLIC_DIR, "giorgio.mp4"),
+//   path.join(SETTINGS.PROJECT_DIR, ".tmp"),
+//   "mp4"
+// )
 
 // Minio Object Storage Buffer
 // router.post(
@@ -128,25 +137,5 @@ router.post(
 //     }
 //   }
 // )
-
-function transcodeVideo(filename, filepath, outputPath) {
-  const ffmpeg = createFFmpeg({
-    log: true,
-    logger: morgan("combined")
-  });
-
-  (async () => {
-    await ffmpeg.load();
-    ffmpeg.FS('writeFile', filename, await fetchFile(filepath));
-    await ffmpeg.run(
-      "-re", "-i", "$2", "-map", "0", "-map", "0", "-c:a", "aac", "-c:v", "libx264",
-      "-b:v:0", "800k", "-b:v:1", "300k", "-s:v:1", "320x170", "-profile:v:1", "baseline",
-      "-profile:v:0", "main", "-bf", "1", "-keyint_min", "120", "-g", "120", "-sc_threshold", "0",
-      "-b_strategy", "0", "-ar:a:1", "22050", "-use_timeline", "1", "-use_template", "1",
-      "-window_size", "5", "-adaptation_sets", "'id=0,streams=v id=1,streams=a'",
-      "-f", "dash", `${outputPath}.mpd`
-    )
-  })();
-}
 
 module.exports = router;

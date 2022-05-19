@@ -64,3 +64,6 @@ typings/
 public/videos/dash/
 public/videos/hls/
 public/videos/source/
+
+# ignore .tmp
+.tmp/
