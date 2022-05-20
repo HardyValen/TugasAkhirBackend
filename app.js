@@ -28,10 +28,20 @@ app.use(bodyParser.json());
 app.use('/upload', uploadRouter);
 
 // transcoder(
-//   path.join(SETTINGS.PUBLIC_DIR, "giorgio.mp4"),
-//   path.join(SETTINGS.PROJECT_DIR, ".tmp"),
-//   "mp4"
+//   "giorgio",
+//   path.join(SETTINGS.PROJECT_DIR, ".tmp/source/giorgio.mp4"),
+//   path.join(SETTINGS.PROJECT_DIR, ".tmp/output/giorgio"),
+//   "mp4",
+//   (e) => {
+//     console.log(e.message)
+//   }
 // )
+
+// fs.readdirSync(path.join(SETTINGS.PROJECT_DIR, ".tmp/source"))
+//   .filter(e => !(/^.$|^..$/.test(e)))
+//   .forEach(async (data) => {
+//     console.log(data);
+//   });
   
   // let x = path.join(SETTINGS.PUBLIC_DIR, "videos/dash");
 // console.log(path.join(x, "test.mpd"));

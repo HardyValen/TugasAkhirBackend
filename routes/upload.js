@@ -8,15 +8,15 @@ const mime          = require("mime-types");
 const {videoModel}  = require("../db/schema/video");
 const minioClient   = require("../minio-client/config");
 const fs            = require("fs");
-// const { createFFmpeg, fetchFile } = require("@ffmpeg/ffmpeg");
 const morgan = require("morgan");
+const transcodeVideoDash = require("../encoder/ffmpeg-wasm");
 
 var router    = express.Router();
 
 // Disk Storage
 var storage   = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(SETTINGS.PUBLIC_DIR, ".tmp/source"))
+    cb(null, path.join(SETTINGS.PROJECT_DIR, ".tmp/source"))
   },
   filename: function(req, file, cb) {
     let extension = mime.extension(file.mimetype);
@@ -51,8 +51,8 @@ router.get("/minio-status", function(req, res, next) {
     .then((data) => {
       res.send(JSON.stringify(data));
     })
-    .catch((e) => {
-      res.status(500).send(JSON.stringify(e.message))
+    .catch((error) => {
+      res.status(500).send(JSON.stringify(error.message))
     });
 })
 
@@ -60,82 +60,114 @@ router.get("/", function(req, res, next) {
   res.sendFile(path.join(SETTINGS.PUBLIC_DIR, "upload-video.html"));
 });
 
+function uploadFile(req, res, next) {
+  const uploadTemp = upload.single('video');
+  uploadTemp(req, res, function(err) {
+    if (err instanceof multer.MulterError) {
+      console.error("[MULTER-ERROR] A Multer error occured when uploading");
+      res.status(500).send("A Multer error occured when uploading");
+    } else if (err) {
+      console.error("[ERROR] An unknown error occured when uploading");
+      res.status(500).send("An unknown error occured when uploading");
+    }
+
+    next();
+  })
+}
+
 // Disk Storage
 router.post(
   "/",  
-  upload.single('video'),
-  function(req, res, next) {
-    let tmpName = `${uuidv4()}-${Date.now()}`;
+  uploadFile,
+  async function(req, res) {
+    // If no multer error
+    res.status(201).send("OK");
 
+    let tmpName = req.file.filename.split(".")[0];
     let tmpSource = path.join(SETTINGS.PROJECT_DIR, `.tmp/source/${req.file.filename}`);
-    let tmpOutputDir = path.join(SETTINGS.PROJECT_DIR, `.tmp/output`)
+    let tmpOutputDir = path.join(SETTINGS.PROJECT_DIR, `.tmp/output/${tmpName}`)
+    let tmpDocID;
 
-    try {
-      new videoModel({...req.file, isStreamable: false}).save(function (err, data) {
-        let tmpID = data.id;
-        
-        if (err) {
-          throw new Error(err.message);
+    let a = await new videoModel({...req.file, filename: tmpName, isStreamable: false, isFailed: false, errorMessage: ""})
+    a.save(async function (error, data) {
+      tmpDocID = data.id;
+
+      // transcode object
+      try {
+        if (error) {
+          throw error;
         };
+
+        tmpDocID = data.id;
+
+        // make output temp path
+        fs.mkdirSync(tmpOutputDir);
+        fs.chmodSync(tmpOutputDir, 0777);
         
-        // save object to minio
-        let stream = fs.createReadStream(tmpSource)
-        minioClient.putObject(
-          process.env.MINIO_VIDEO_BUCKET_NAME,
-          req.file.filename,
-          stream,
-          async (e) => {
-            if (e) {
-              await videoModel.remove({_id: tmpID})
-              fs.unlinkSync(tmpSource);
-              res.status(500).send(e);
-            } else {
-              // delete temporary file
-              fs.unlinkSync(tmpSource);
+        transcodeVideoDash(
+          tmpName,
+          tmpSource,
+          tmpOutputDir,
+          path.extname(req.file.originalname).toLowerCase(),
+          async (error) => {
+            try {
+              if (error) {
+                throw error;
+              }
+              
+              // save objects to minio
+              // list all files of a directory, excluding . and ..
+              let outputFiles = fs.readdirSync(tmpOutputDir).filter(e => !(/^.$|^..$/.test(e)));
+              
+              for(var i = 0; i < outputFiles.length; i++) {
+                let filename = outputFiles[i];
+                console.log(`[MINIO-INFO] Uploading ${filename}...`);
+                let outputPath = path.join(tmpOutputDir, filename);
 
-              // update document
-              await videoModel.updateOne({_id: tmpID}, {isStreamable: true});
+                let stream = fs.createReadStream(outputPath);
+                minioClient.putObject(
+                  process.env.MINIO_VIDEO_BUCKET_NAME,
+                  `${tmpName}/${filename}`,
+                  stream,
+                  (error) => {
+                    if (error) {
+                      console.error(`[MINIO-ERROR] Failed when uploading to minio`);
+                      await videoModel.updateOne({_id: tmpDocID}, {isStreamable: false});
+                    } else {
+                      console.log(`[MINIO-INFO] ${filename} successfully uploaded!`);
+                    };
+                  }
+                );
+              }
 
-              res.status(201).send("OK");
-            };
+              await videoModel.updateOne({_id: tmpDocID}, {isStreamable: true});
+              fs.unlinkSync(tmpSource);
+              fs.rmdirSync(tmpOutputDir, {recursive: true});
+            } catch (error) {
+              // fs.unlinkSync(tmpSource);
+              console.error(`[TRANSCODE-ERROR] ${error.message}`)
+              await videoModel.updateOne({_id: tmpDocID}, {
+                isFailed: true,
+                errorMessage: error.message
+              });
+              fs.unlinkSync(tmpSource);
+              fs.rmdirSync(tmpOutputDir, {recursive: true});
+            }
+            // console.log("[MINIO-INFO] Files uploaded successfully!")
           }
         )
-      });
-      
-    } catch (error) {
-      fs.unlinkSync(tmp);
-      res.status(500).send(error.message);
-    }
+      } catch (error) {
+        console.error(`[TRANSCODE-ERROR] ${error.message}`)
+        await videoModel.updateOne({_id: tmpDocID}, {
+          isFailed: true,
+          errorMessage: error.message
+        });
+        fs.unlinkSync(tmpSource);
+        fs.rmdirSync(tmpOutputDir, {recursive: true});
+      }
+      // end of transcode
+    });
   }
-)
-
-// transcoder(
-//   path.join(SETTINGS.PUBLIC_DIR, "giorgio.mp4"),
-//   path.join(SETTINGS.PROJECT_DIR, ".tmp"),
-//   "mp4"
-// )
-
-// Minio Object Storage Buffer
-// router.post(
-//   "/",
-//   upload.single('video'),
-//   function(req, res, next) {
-    
-//     try {
-//       minioClient.putObject(
-//         process.env.MINIO_VIDEO_BUCKET_NAME,
-//         `${req.file.originalname}-${Date.now()}`,
-//         req.file.buffer,
-//         (e) => {
-//           throw new Error(e);
-//         }
-//       )
-
-//       res.send("OK")
-//     } catch (error) {
-//       res.status(500).send(error.message);
-//     }
-//   }
-// )
+);
 
 module.exports = router;
