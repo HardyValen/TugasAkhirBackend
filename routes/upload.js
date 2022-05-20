@@ -129,7 +129,7 @@ router.post(
                   process.env.MINIO_VIDEO_BUCKET_NAME,
                   `${tmpName}/${filename}`,
                   stream,
-                  (error) => {
+                  async (error) => {
                     if (error) {
                       console.error(`[MINIO-ERROR] Failed when uploading to minio`);
                       await videoModel.updateOne({_id: tmpDocID}, {isStreamable: false});
