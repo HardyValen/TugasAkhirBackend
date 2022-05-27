@@ -1,11 +1,9 @@
 const mongoose    = require("mongoose");
 
 const videoSchema = new mongoose.Schema({
+  "fieldname"     : "string",
+  "objectname"    : "string",
   "originalname"  : "string",
-  "encoding"      : "string",
-  "mimetype"      : "string",
-  "path"          : "string",
-  "filename"      : "string",
   "size"          : "number",
   "isStreamable"  : "boolean",
   "isFailed"      : "boolean",

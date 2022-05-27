@@ -10,4 +10,13 @@ const minioClient =  new Minio.Client({
   secretKey : process.env.MINIO_SECRET_KEY
 })
 
+minioClient.listBuckets()
+  .then((data) => {
+    console.log(`[MINIO-INFO] Connected to Minio, Buckets: ${JSON.stringify(data)}`)
+  })
+  .catch((error) => {
+    console.log(`[MINIO-ERROR] Failed to connect to minio service. \n 
+      Error message: ${error.message} `)
+  });
+
 module.exports = minioClient;

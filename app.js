@@ -6,14 +6,15 @@ var express       = require('express'),
     cors          = require("cors"),
     db            = require("./db/config"),
     SETTINGS      = require("./settings"),
-    transcoder    = require("./encoder/ffmpeg-wasm")
     fs            = require("fs");
+const { getMimeType } = require('stream-mime-type');
 
 global.SETTINGS = SETTINGS
 
 db.dbconnect();
 
 var uploadRouter  = require("./routes/upload");
+var vodRouter     = require("./routes/vod");
 
 var app = express();
 
@@ -26,24 +27,12 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 
 app.use('/upload', uploadRouter);
+app.use('/vod', vodRouter);
 
-// transcoder(
-//   "giorgio",
-//   path.join(SETTINGS.PROJECT_DIR, ".tmp/source/giorgio.mp4"),
-//   path.join(SETTINGS.PROJECT_DIR, ".tmp/output/giorgio"),
-//   "mp4",
-//   (e) => {
-//     console.log(e.message)
-//   }
-// )
-
-// fs.readdirSync(path.join(SETTINGS.PROJECT_DIR, ".tmp/source"))
-//   .filter(e => !(/^.$|^..$/.test(e)))
-//   .forEach(async (data) => {
-//     console.log(data);
-//   });
-  
-  // let x = path.join(SETTINGS.PUBLIC_DIR, "videos/dash");
-// console.log(path.join(x, "test.mpd"));
+// let b = fs.readFileSync(path.join(PUBLIC_DIR, "giorgio.mpd"));
+// (async () => {
+//   const { mime } = await getMimeType(b);
+//   console.log(mime);
+// })()
 
 module.exports = app;
