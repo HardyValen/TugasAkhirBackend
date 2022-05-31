@@ -1,15 +1,14 @@
 require("dotenv").config();
 
 var mongoose  = require("mongoose");
+const commonLogger = require("../logfiles/commonLogger");
 
 var db = mongoose.connection;
-mongoose.connect(process.env.DB_URL_COMPLETE);
 
-module.exports = {
-  dbconnect: function(){
-    db.on('error', console.error.bind( console, '[MONGO-ERROR] DB Connection Error.'));
-    db.once('open', function callback(){
-      console.log(`[MONGO-INFO] Successfully connected to DB ${db.name}`);
-    });
-  }
-};
+module.exports = mongoose.connect(process.env.DB_URL_COMPLETE)
+.then(() => {
+  commonLogger.info(`Successfully connected to DB ${db.name}`, {context: "mongo"});
+})
+.catch(e => {
+  commonLogger.error(`Error connecting to DB\n${e.message}`, {context: "mongo"})
+});

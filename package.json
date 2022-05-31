@@ -6,8 +6,7 @@
     "start": "node --experimental-wasm-threads --experimental-wasm-bulk-memory ./bin/www",
     "dev": "nodemon --experimental-wasm-threads --experimental-wasm-bulk-memory ./bin/www",
     "debug": "DEBUG=*:* npm run dev",
-    "refresh-tmp": "node ./bin/refresh-tmp.js",
-    "rm-videos": "npm run rm-source & npm run rm-dash & npm run rm-hls"
+    "refresh-tmp": "node ./bin/refresh-tmp.js"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.10.0",
@@ -23,7 +22,10 @@
     "mongoose": "^6.3.3",
     "morgan": "~1.9.1",
     "multer": "^1.4.4",
-    "stream-mime-type": "^1.0.2"
+    "node-schedule": "^2.1.0",
+    "rotating-file-stream": "^3.0.4",
+    "toad-scheduler": "^1.6.1",
+    "winston": "^3.7.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.16"

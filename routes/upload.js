@@ -8,7 +8,8 @@ const minioClient   = require("../minio-client/config");
 const fs            = require("fs");
 const transcode     = require("../encoder/ffmpeg-wasm");
 const crypto        = require("crypto");
-const { getMimeType } = require("stream-mime-type");
+const SETTINGS      = require("../settings");
+const commonLogger = require("../logfiles/commonLogger");
 
 var router    = express.Router();
 
@@ -20,7 +21,7 @@ var storage   = multer.diskStorage({
   filename: function(req, file, cb) {
     let extension = path.extname(file.originalname);
     let name = crypto.createHash('sha1').update(`${file.originalname}-${Date.now()}`).digest("hex").toString();
-    console.log(`[UPLOAD-INFO] new filename = ${name}${extension}`);
+    commonLogger.info(`new filename = ${name}${extension}`, {context: "upload"});
     cb(null, `${name}${extension}`)
   }
 })
@@ -52,10 +53,10 @@ function uploadFile(req, res, next) {
   const uploadTemp = upload.single('video');
   uploadTemp(req, res, function(err) {
     if (err instanceof multer.MulterError) {
-      console.error("[MULTER-ERROR] A Multer error occured when uploading");
+      commonLogger.error("A Multer error occured when uploading", {context: "multer"});
       res.status(500).send("A Multer error occured when uploading");
     } else if (err) {
-      console.error("[ERROR] An unknown error occured when uploading");
+      commonLogger.error("[ERROR] An unknown error occured when uploading", {context: "multer"});
       res.status(500).send("An unknown error occured when uploading");
     }
     next();
@@ -79,9 +80,6 @@ router.post(
     }
   },
   async function(req, res) {
-    // If no multer error
-    
-    res.status(201).send("OK");
 
     let fieldname = req.body.fieldname;
     let tmpName = req.file.filename.split(".")[0];
@@ -100,6 +98,7 @@ router.post(
     })
     a.save(async function (error, data) {
       tmpDocID = data.id;
+      res.status(201).send(`File uploaded, ID: ${data.id}`);
 
       // transcode object
       try {
@@ -120,11 +119,11 @@ router.post(
           path.extname(req.file.originalname).toLowerCase(),
           async (error) => {
             try {
-              try {
-                fs.unlink(tmpSource, () => {
-                  console.warn("[DELETE-WARNING] SOURCE DELETED ...")
-                });
-              } catch (error) {}
+              // try {
+              //   fs.unlinkSync(tmpSource);
+              // } catch (error) {
+              //   console.error(error.message)
+              // }
 
               if (error) {
                 throw error;
@@ -145,7 +144,7 @@ router.post(
                   let extension = filename.split(".");
                   extension = extension[extension.length - 1];
 
-                  console.log(`[MINIO-INFO] Uploading ${filename}`);
+                  commonLogger.info(`Uploading ${filename}`, {context: "minio"});
 
                   try {
                     let stream = fs.createReadStream(outputPath);
@@ -156,46 +155,27 @@ router.post(
                       stream,
                       async (error) => {
                         if (error) {
-                          console.error(`[MINIO-ERROR] Failed when uploading to minio, Error: ${error.message}`);
+                          commonLogger.error(`Failed when uploading to minio, Error: ${error.message}`, {context: "minio"});
                           await videoModel.updateOne({_id: tmpDocID}, {isStreamable: false, isFailed: true, errorMessage: error.message});
                           recursiveUpload([], outputDir, error);
                         } else {
-                          console.log(`[MINIO-INFO] ${filename} successfully uploaded!`);
+                          commonLogger.info(`${filename} successfully uploaded!`, {context: "minio"});
                           recursiveUpload(tmp, outputDir, null);
                         }
                       }
                     );
-
-                    // Somebody help me on fPutObject please
-                    // minioClient.fPutObject(
-                    //   process.env.MINIO_VIDEO_BUCKET_NAME,
-                    //   `${tmpName}/${filename}`,
-                    //   outputPath,
-                    //   { 'Content-Type': 'application/octet-stream' },
-                    //   async (error) => {
-                    //     if (error) {
-                    //       console.error(`[MINIO-ERROR] Failed when uploading to minio, Error: ${error.message}`);
-                    //       await videoModel.updateOne({_id: tmpDocID}, {isStreamable: false});
-                    //       recursiveUpload([], outputDir, error);
-                    //     } else {
-                    //       console.log(`[MINIO-INFO] ${filename} successfully uploaded!`);
-                    //       recursiveUpload(tmp, outputDir, null);
-                    //     }
-                    //   }
-                    // );
                   } catch (error) {
-                    console.error(error.message);
+                    commonLogger.error(error.message, {context: "upload"});
                   }
                 } else if (files.length == 0 && Array.isArray(files)) {
                   try {
+                    fs.unlinkSync(tmpSource);
                     fs.rmdirSync(outputDir, { recursive: true })
-                    console.warn("[DELETE-WARNING] OUTPUT DELETED ...")
-                    
                     if (!error) {
                       await videoModel.updateOne({_id: tmpDocID}, {isStreamable: true});
                     }
                   } catch (e) {
-                    console.error(e)
+                    commonLogger.error(e, {context: "upload"})
                   }
                 }
               }
@@ -203,8 +183,7 @@ router.post(
               await recursiveUpload(outputFiles, tmpOutputDir, null);
               
             } catch (error) {
-              // fs.unlinkSync(tmpSource);
-              console.error(`[TRANSCODE-ERROR] ${error.message}`)
+              commonLogger.error(` ${error.message}`, {context: "transcode"})
               await videoModel.updateOne({_id: tmpDocID}, {
                 isStreamable: false,
                 isFailed: true,
@@ -213,11 +192,10 @@ router.post(
               fs.unlinkSync(tmpSource);
               fs.rmdirSync(tmpOutputDir, {recursive: true});
             }
-            // console.log("[MINIO-INFO] Files uploaded successfully!")
           }
         )
       } catch (error) {
-        console.error(`[TRANSCODE-ERROR] ${error.message}`)
+        commonLogger.error(`${error.message}`, {context: "transcode"})
         await videoModel.updateOne({_id: tmpDocID}, {
           isFailed: true,
           errorMessage: error.message

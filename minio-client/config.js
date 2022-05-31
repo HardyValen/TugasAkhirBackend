@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const Minio = require("minio");
+const commonLogger = require("../logfiles/commonLogger");
 
 const minioClient =  new Minio.Client({
   endPoint  : process.env.MINIO_URL,
@@ -12,11 +13,10 @@ const minioClient =  new Minio.Client({
 
 minioClient.listBuckets()
   .then((data) => {
-    console.log(`[MINIO-INFO] Connected to Minio, Buckets: ${JSON.stringify(data)}`)
+    commonLogger.info(`Connected to Minio, Buckets: ${JSON.stringify(data)}`, {context: "minio"})
   })
   .catch((error) => {
-    console.log(`[MINIO-ERROR] Failed to connect to minio service. \n 
-      Error message: ${error.message} `)
+    commonLogger.error(`Failed to connect to minio service.\nError message: ${error.message}`, {context: "minio"})
   });
 
 module.exports = minioClient;

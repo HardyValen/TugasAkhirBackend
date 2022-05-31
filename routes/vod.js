@@ -6,25 +6,24 @@ const { videoModel }  = require("../db/schema/video");
 const minioClient     = require("../minio-client/config");
 const crypto          = require("crypto");
 const fs              = require("fs");
+const SETTINGS        = require("../settings");
+const commonLogger = require("../logfiles/commonLogger");
 
 const router    = express.Router();
 
 router.get(
   "/*.mpd",
   async function(req, res) {
-    console.log(req.params[0])
     try {
       videoModel.findOne({ fieldname: req.params[0] }, function (err, doc) {
         if (err) {
-          console.error(`[MINIO-ERROR] ${error.message}`);
+          commonLogger.error(`${error.message}`, {context: "minio"});
           res.status(500).send("Internal server error");
         } else {
           // if null
           if (!doc) {
             res.status(404).send("File not found")
           } else {
-            console.log(doc)
-
             // if not Streamable
             if (!doc.isStreamable) { 
               res.status(410).send("Video you've requested is not yet streamable")
@@ -49,7 +48,7 @@ router.get(
                 outputFile,
                 async (err) => {
                   if (err) {
-                    console.log(err)
+                    commonLogger.log(err, {context: "vod"})
                     res.status(500).send("Internal server error")
                   } else {
                     res.status(200).sendFile(outputFile, () => {
@@ -63,7 +62,7 @@ router.get(
         }
       })
     } catch (error) {
-      console.error(`[GET-ERROR] ${error.message}`);
+      commonLogger.error(`${error.message}`, {context: "vod"});
       res.status(500).send("Internal server error");
     }
   }
@@ -73,11 +72,9 @@ router.get(
   "/*.m4s",
   async function(req, res) {
     let chunkName = req.params[0];
-    console.log(req.headers);
     
     let parentObj = chunkName.split("-")[0];
     let objectName = `${parentObj}/${req.params[0]}.m4s`;
-    console.log(parentObj)
 
     let tmpName = crypto.createHash('sha1').update(`${Date.now()}`).digest("hex").toString();
     let outputDir = path.join(SETTINGS.PUBLIC_DIR, `videos/${tmpName}`);
@@ -92,7 +89,7 @@ router.get(
       outputFile,
       async (err) => {
         if (err) {
-          console.log(err)
+          commonLogger.error(err, {context: "minio"})
           res.status(500).send("Internal server error")
         } else {
           res.status(200).sendFile(outputFile, () => {

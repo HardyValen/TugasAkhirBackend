@@ -1,20 +1,33 @@
 const {createFFmpeg, fetchFile} = require("@ffmpeg/ffmpeg");
 const path = require("path");
-// const settings = require("../settings");
 const fs = require("fs");
-// const {v4: uuidv4} = require("uuid");
+const commonLogger = require("../logfiles/commonLogger");
+const ffmpegErrors = require("./ffmpeg-errors");
 
 async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt, cb) {
+  let isSuccess = true;
+
   const ffmpeg = createFFmpeg({
-    log: true
+    logger: ({message}) => {
+      let x = 0;
+      commonLogger.info(message, {context: "ffmpeg"});
+      ffmpegErrors.forEach(e => {
+        if (message.includes(e)) {
+          x++
+        }
+      })
+      if (x > 0) {
+        isSuccess = false
+      }
+    }
   });
 
-  console.log(`
-    [FFMPEG-INFO] Filename : ${inputFileName}\n
-    [FFMPEG-INFO] InputPath : ${inputPath}\n
-    [FFMPEG-INFO] Extension : ${inputExt}\n
-    [FFMPEG-INFO] Output : ${outputDir}
-  `)
+  commonLogger.info(`
+    [FFMPEG] Filename : ${inputFileName}
+    [FFMPEG] InputPath : ${inputPath}
+    [FFMPEG] Extension : ${inputExt}
+    [FFMPEG] Output : ${outputDir}
+  `, {context: "ffmpeg"})
 
   try {
     // (async () => {
@@ -23,7 +36,7 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
       const tmpOut = `${tmpDir}.mpd`;
 
       ffmpeg.setProgress(({ratio}) => {
-        console.log(`[FFMPEG-INFO] Progress: ${(ratio*100).toFixed(2)}%`)
+        commonLogger.info(`Progress: ${(ratio*100).toFixed(2)}%`, {context: "ffmpeg"})
       });
 
       fs.mkdirSync(outputDir, {recursive: true});
@@ -39,7 +52,7 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
       
       // Run ffmpeg command
       await ffmpeg.run(
-        "-re", "-i", `/tmp/${tmpName}`,
+        "-i", `/tmp/${tmpName}`,
         "-map", "0", "-map", "0",
         "-c:a", "aac", "-c:v", "libx264",
         "-b:v:0", "800k", "-b:v:1", "300k",
@@ -54,7 +67,7 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
         "-media_seg_name", `${tmpDir}-chunk-stream\$RepresentationID\$-\$Number%05d\$.\$ext\$`,
         "-f", "dash", `${tmpDir}/${tmpOut}`
       ).catch(e => {
-        console.log(`[ERROR] ${e.message}`);
+        commonLogger.error(`${e.message}`, {context: "ffmpeg"});
       });
 
       // Recursively write files
@@ -84,7 +97,12 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
 
       // Remove input file from tmp directory  
       ffmpeg.FS("unlink", `/tmp/${tmpName}`);
-      console.log("[FFMPEG-INFO] Transcoding completed");
+      commonLogger.info("[FFMPEG-INFO] Transcoding completed", {context: "ffmpeg"});
+
+      if (isSuccess == false) {
+        throw new Error("Conversion Failed!");
+      };
+
       await cb(null);
     // })();
   } catch (error) {

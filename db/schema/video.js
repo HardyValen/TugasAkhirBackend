@@ -10,7 +10,7 @@ const videoSchema = new mongoose.Schema({
   "errorMessage"  : "string",
 })
 
-const videoModel  = mongoose.model("video", videoSchema)
+const videoModel  = mongoose.model("dev-video", videoSchema)
 
 module.exports = {
   videoSchema, 
