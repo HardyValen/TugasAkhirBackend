@@ -2,12 +2,9 @@ require("dotenv").config();
 
 const logger        = require("./logfiles/HTTPLogger");
 const express       = require('express');
-const path          = require('path');
 const cookieParser  = require('cookie-parser');
 const bodyParser    = require("body-parser");
 const cors          = require("cors");
-const SETTINGS      = require("./settings");
-const fs            = require("fs");
 const db            = require("./db/config");
 
 db.dbconnect();
