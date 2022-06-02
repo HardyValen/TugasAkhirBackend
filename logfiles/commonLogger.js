@@ -1,6 +1,8 @@
 const winston = require("winston");
 const path    = require("path");
 const SETTINGS = require("../settings");
+const refreshLog = require("./refreshLog");
+const { ToadScheduler, SimpleIntervalJob, Task } = require("toad-scheduler");
 
 const loggerCommonFormat = winston.format.combine(
   winston.format.splat(),
@@ -22,14 +24,49 @@ const commonLogger = winston.createLogger({
 })
 
 if (process.env.ENV == "production") {
+  let commonInfoLogPath = path.join(SETTINGS.COMMON_LOG_DIR, "error.log");
+  let commonErrorLogPath = path.join(SETTINGS.COMMON_LOG_DIR, "info.log");
+
   commonLogger.add( new winston.transports.File({
-    filename: path.join(SETTINGS.COMMON_LOG_DIR, "error.log"), 
+    filename: commonInfoLogPath, 
     level: "error"
   }))
   commonLogger.add( new winston.transports.File({
-    filename: path.join(SETTINGS.COMMON_LOG_DIR, "info.log"), 
+    filename: commonErrorLogPath, 
     level: "info"
   }))
+
+  const scheduler = new ToadScheduler();
+  const task = new Task("monthly-common-logger-task", () => {
+    let date = Date.now();
+    let commonErrorBucketLocation = path.join(process.env.SERVER_ID, "common", "error", `${date}.log`);
+    let commonInfoBucketLocation = path.join(process.env.SERVER_ID, "common", "info", `${date}.log`);
+
+    console.log("monthly-http-common-task successfully executed")
+    refreshLog(commonInfoLogPath, commonInfoBucketLocation, (error) => {
+      if (error) {
+        commonLogger.error(error.message, {context: `commonlogger`})
+      }
+    })
+  
+    refreshLog(commonErrorLogPath, commonErrorBucketLocation, (error) => {
+      if (error) {
+        commonLogger.error(error.message, {context: `commonlogger`})
+      }
+    })
+  })
+
+  const job = new SimpleIntervalJob(
+    {
+      days: 1,
+      runImmediately: true,
+    },
+    task,
+    'monthly-common-logger-job' 
+  )
+
+  scheduler.addIntervalJob(job);
+  
 } else {
   commonLogger.add(new winston.transports.Console())
 }

@@ -6,6 +6,7 @@
 
 require("dotenv").config();
 var app = require('../app');
+var commonLogger = require("../logfiles/commonLogger");
 var debug = require('debug')('backend:server');
 var http = require('http');
 
@@ -15,7 +16,7 @@ var http = require('http');
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
-console.log(`[APP-INFO] App is running on port ${port}`)
+commonLogger.info(`[APP-INFO] App is running on port ${port}`)
 
 /**
  * Create HTTP server.
@@ -67,11 +68,11 @@ function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      commonLogger.error(`${bind} requires elevated privileges`);
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      commonLogger.error(`${bind} is already in use`);
       process.exit(1);
       break;
     default:

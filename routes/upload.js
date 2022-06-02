@@ -154,6 +154,7 @@ router.post(
                       `${tmpName}/${filename}`,
                       stream,
                       async (error) => {
+                        stream.close();
                         if (error) {
                           commonLogger.error(`Failed when uploading to minio, Error: ${error.message}`, {context: "minio"});
                           await videoModel.updateOne({_id: tmpDocID}, {isStreamable: false, isFailed: true, errorMessage: error.message});
