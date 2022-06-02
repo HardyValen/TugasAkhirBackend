@@ -18,6 +18,7 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
       })
       if (x > 0) {
         isSuccess = false
+        // commonLogger.error(message, {context: "ffmpeg"});
       }
     }
   });

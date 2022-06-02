@@ -6,10 +6,13 @@ yarn-debug.log*
 yarn-error.log*
 
 public/videos/
+encoder/ffmpeg-fluent.js
+encoder/ffmpeg-npm.js
 .env
 .env.example
 
 node_modules/
 jspm_packages/
+package-lock.json
 
 .npm
