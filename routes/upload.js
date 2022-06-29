@@ -10,6 +10,7 @@ const transcode     = require("../encoder/ffmpeg-wasm");
 const crypto        = require("crypto");
 const SETTINGS      = require("../settings");
 const commonLogger = require("../logfiles/commonLogger");
+const videoStatusEnum = require("../db/schema/videoStatusEnum");
 
 var router    = express.Router();
 
@@ -92,9 +93,8 @@ router.post(
       objectname: tmpName,
       originalname: req.file.originalname,
       size: req.file.size,
-      isStreamable: false,
-      isFailed: false,
-      errorMessage: ""
+      videoDescription: req.body.videoDescription || "",
+      videoStatus: videoStatusEnum(4011)
     })
     a.save(async function (error, data) {
       tmpDocID = data.id;
@@ -157,7 +157,10 @@ router.post(
                         stream.close();
                         if (error) {
                           commonLogger.error(`Failed when uploading to minio, Error: ${error.message}`, {context: "minio"});
-                          await videoModel.updateOne({_id: tmpDocID}, {isStreamable: false, isFailed: true, errorMessage: error.message});
+                          await videoModel.updateOne(
+                            {_id: tmpDocID}, 
+                            {videoStatus: videoStatusEnum(4000)}
+                          );
                           recursiveUpload([], outputDir, error);
                         } else {
                           commonLogger.info(`${filename} successfully uploaded!`, {context: "minio"});
@@ -173,7 +176,10 @@ router.post(
                     fs.unlinkSync(tmpSource);
                     fs.rmdirSync(outputDir, { recursive: true })
                     if (!error) {
-                      await videoModel.updateOne({_id: tmpDocID}, {isStreamable: true});
+                      await videoModel.updateOne(
+                        {_id: tmpDocID}, 
+                        {videoStatus: videoStatusEnum(2000)}
+                      );
                     }
                   } catch (e) {
                     commonLogger.error(e, {context: "upload"})
@@ -185,11 +191,9 @@ router.post(
               
             } catch (error) {
               commonLogger.error(` ${error.message}`, {context: "transcode"})
-              await videoModel.updateOne({_id: tmpDocID}, {
-                isStreamable: false,
-                isFailed: true,
-                errorMessage: error.message
-              });
+              await videoModel.updateOne(
+                {_id: tmpDocID}, 
+                { videoStatus: videoStatusEnum(4000) });
               fs.unlinkSync(tmpSource);
               fs.rmdirSync(tmpOutputDir, {recursive: true});
             }
@@ -197,10 +201,10 @@ router.post(
         )
       } catch (error) {
         commonLogger.error(`${error.message}`, {context: "transcode"})
-        await videoModel.updateOne({_id: tmpDocID}, {
-          isFailed: true,
-          errorMessage: error.message
-        });
+        await videoModel.updateOne(
+          {_id: tmpDocID},
+          { videoStatus: videoStatusEnum(4000) } 
+        );
         fs.unlinkSync(tmpSource);
         fs.rmdirSync(tmpOutputDir, {recursive: true});
       }
