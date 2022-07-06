@@ -1,3 +1,14 @@
+// This function is REALLY SLOW
+// Has an efficiency of potato sand machine
+// Example: to encode 30 second mp4, 
+//  ** it takes 6 minutes to finish using ffmpeg-wasm
+//  ** it only took 9 second to finish using system-installed ffmpeg
+// it is 12 times to 13 times slower!
+// For an hour video, it could take 12 hours to complete...
+
+// should i make an API to accelerate transcoding using system-installed ffmpeg?
+
+
 const {createFFmpeg, fetchFile} = require("@ffmpeg/ffmpeg");
 const path = require("path");
 const fs = require("fs");
@@ -10,7 +21,7 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
   const ffmpeg = createFFmpeg({
     logger: ({message}) => {
       let x = 0;
-      commonLogger.info(message, {context: "ffmpeg"});
+      // commonLogger.info(message, {context: "ffmpeg"});
       ffmpegErrors.forEach(e => {
         if (message.includes(e)) {
           x++
@@ -36,9 +47,9 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
       const tmpName = `${tmpDir}${inputExt}`;
       const tmpOut = `${tmpDir}.mpd`;
 
-      ffmpeg.setProgress(({ratio}) => {
-        commonLogger.info(`Progress: ${(ratio*100).toFixed(2)}%`, {context: "ffmpeg"})
-      });
+      // ffmpeg.setProgress(({ratio}) => {
+      //   commonLogger.info(`Progress: ${(ratio*100).toFixed(2)}%`, {context: "ffmpeg"})
+      // });
 
       fs.mkdirSync(outputDir, {recursive: true});
       fs.chmodSync(outputDir, 0777);

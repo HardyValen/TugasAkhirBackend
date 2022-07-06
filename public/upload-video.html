@@ -8,14 +8,35 @@
 </head>
 <body>
   <h1>Upload Video</h1>
-  <form action="http://localhost:9999/upload" method="post" enctype="multipart/form-data" id="form">
-    <input type="text" id="fieldname" name="fieldname"></br/>
-    <input type="file" id="file" name="video"/><br>
-    <button type="submit">Submit</button>
+  <form method="post" enctype="multipart/form-data" id="form">
+    <div>
+      <label for="serverURL">Server URL: </label>
+      <input type="text" id="serverURL" name="serverURL" value="http://localhost:9999/upload">
+    </div>
+    <div>
+      <label for="fieldname">Video Title: </label>
+      <input type="text" id="fieldname" name="fieldname">
+    </div>
+    <div>
+      <label for="videoDescription">Video Description: </label><br>
+      <textarea id="videoDescription" name="videoDescription"></textarea>
+    </div>
+    <div>
+      <input type="file" id="file" name="video"/><br>
+    </div>
+    <button type="submit" id="submitForm">Submit</button>
   </form>
 </body>
 
-<!-- <script>
-  const form = document.getElementById("form")
-</script> -->
+<script>
+  let form = document.getElementById("form");
+  let button = document.getElementById("submitForm");
+  let serverURL = document.getElementById("serverURL");
+
+  button.addEventListener("click", (e) => {
+    e.preventDefault();
+    form.action = serverURL.value;
+    form.submit();
+  })
+</script>
 </html>

@@ -10,6 +10,8 @@ const videoSchema = new mongoose.Schema({
   "originalname"      : "string",
   "videoDescription"  : "string",
   "size"              : "number",
+  "createdAt"         : "number",
+  "updatedAt"         : "number"
 })
 
 const videoModel  = mongoose.model("dev-video", videoSchema)

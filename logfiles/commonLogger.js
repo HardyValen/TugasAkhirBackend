@@ -24,16 +24,16 @@ const commonLogger = winston.createLogger({
 })
 
 if (process.env.ENV == "production") {
-  let commonInfoLogPath = path.join(SETTINGS.COMMON_LOG_DIR, "error.log");
-  let commonErrorLogPath = path.join(SETTINGS.COMMON_LOG_DIR, "info.log");
+  let commonInfoLogPath = path.join(SETTINGS.COMMON_LOG_DIR, "info.log");
+  let commonErrorLogPath = path.join(SETTINGS.COMMON_LOG_DIR, "error.log");
 
   commonLogger.add( new winston.transports.File({
     filename: commonInfoLogPath, 
-    level: "error"
+    level: "info"
   }))
   commonLogger.add( new winston.transports.File({
     filename: commonErrorLogPath, 
-    level: "info"
+    level: "error"
   }))
 
   const scheduler = new ToadScheduler();

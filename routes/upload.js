@@ -54,11 +54,11 @@ function uploadFile(req, res, next) {
   const uploadTemp = upload.single('video');
   uploadTemp(req, res, function(err) {
     if (err instanceof multer.MulterError) {
-      commonLogger.error("A Multer error occured when uploading", {context: "multer"});
-      res.status(500).send("A Multer error occured when uploading");
+      commonLogger.error(`A Multer error occured when uploading: ${err.message}`, {context: "multer"});
+      res.status(500).send("An error occured when uploading");
     } else if (err) {
-      commonLogger.error("[ERROR] An unknown error occured when uploading", {context: "multer"});
-      res.status(500).send("An unknown error occured when uploading");
+      commonLogger.error(`An unknown error occured when uploading: ${err.message}`, {context: "multer"});
+      res.status(500).send("An error occured when uploading");
     }
     next();
   })
@@ -94,7 +94,9 @@ router.post(
       originalname: req.file.originalname,
       size: req.file.size,
       videoDescription: req.body.videoDescription || "",
-      videoStatus: videoStatusEnum(4011)
+      videoStatus: videoStatusEnum(4011),
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     })
     a.save(async function (error, data) {
       tmpDocID = data.id;
@@ -159,7 +161,10 @@ router.post(
                           commonLogger.error(`Failed when uploading to minio, Error: ${error.message}`, {context: "minio"});
                           await videoModel.updateOne(
                             {_id: tmpDocID}, 
-                            {videoStatus: videoStatusEnum(4000)}
+                            {
+                              videoStatus: videoStatusEnum(4000),
+                              updatedAt: Date.now()
+                            }
                           );
                           recursiveUpload([], outputDir, error);
                         } else {
@@ -178,7 +183,10 @@ router.post(
                     if (!error) {
                       await videoModel.updateOne(
                         {_id: tmpDocID}, 
-                        {videoStatus: videoStatusEnum(2000)}
+                        {
+                          videoStatus: videoStatusEnum(2000),
+                          updatedAt: Date.now()
+                        }
                       );
                     }
                   } catch (e) {
@@ -193,7 +201,10 @@ router.post(
               commonLogger.error(` ${error.message}`, {context: "transcode"})
               await videoModel.updateOne(
                 {_id: tmpDocID}, 
-                { videoStatus: videoStatusEnum(4000) });
+                { 
+                  videoStatus: videoStatusEnum(4000),
+                  updatedAt: Date.now()
+                });
               fs.unlinkSync(tmpSource);
               fs.rmdirSync(tmpOutputDir, {recursive: true});
             }
@@ -203,7 +214,10 @@ router.post(
         commonLogger.error(`${error.message}`, {context: "transcode"})
         await videoModel.updateOne(
           {_id: tmpDocID},
-          { videoStatus: videoStatusEnum(4000) } 
+          {
+            videoStatus: videoStatusEnum(4000),
+            updatedAt: Date.now()
+          } 
         );
         fs.unlinkSync(tmpSource);
         fs.rmdirSync(tmpOutputDir, {recursive: true});
