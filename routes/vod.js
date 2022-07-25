@@ -34,12 +34,14 @@ router.get(
               } else {
                 let objectName = `${doc.objectname}/${doc.objectname}.mpd`;
   
-                let tmpName = crypto.createHash('sha1').update(`${Date.now()}`).digest("hex").toString();
+                let tmpName = crypto.createHash('sha1').update(`${Date.now()}-${Math.random()}`).digest("hex").toString();
                 let outputDir = path.join(SETTINGS.PUBLIC_DIR, `videos/${tmpName}`);
                 let outputFile = path.join(outputDir, `${tmpName}`)
   
-                fs.mkdirSync(outputDir);
-                fs.chmodSync(outputDir, 0777);
+                // if (!fs.existsSync()) {
+                  fs.mkdirSync(outputDir);
+                  fs.chmodSync(outputDir, 0777);
+                // }
                 
                 minioClient.fGetObject(
                   process.env.MINIO_VIDEO_BUCKET_NAME,
@@ -77,7 +79,7 @@ router.get(
     let parentObj = chunkName.split("-")[0];
     let objectName = `${parentObj}/${req.params[0]}.m4s`;
 
-    let tmpName = crypto.createHash('sha1').update(`${Date.now()}`).digest("hex").toString();
+    let tmpName = crypto.createHash('sha1').update(`${Date.now()}-${Math.random()}`).digest("hex").toString();
     let outputDir = path.join(SETTINGS.PUBLIC_DIR, `videos/${tmpName}`);
     let outputFile = path.join(outputDir, `${tmpName}`)
 
@@ -91,7 +93,8 @@ router.get(
       async (err) => {
         if (err) {
           commonLogger.error(err, {context: "minio"})
-          res.status(500).send("Internal server error")
+          res.status(404).send("File not found")
+          fs.rmdirSync(outputDir, { recursive: true });
         } else {
           res.status(200).sendFile(outputFile, () => {
             fs.rmdirSync(outputDir, { recursive: true });
@@ -118,17 +121,30 @@ router.get("/results", (req, res) => {
     mongoQuery.fieldname = searchQuery
   }
 
-  videoModel.find(mongoQuery)
-  .sort({"updated_At": -1})
-  .limit(quantity)
-  .exec(function (err, doc) {
-    if (err) {
-      commonLogger.error(`${err.message}`, {context: "minio"});
-      res.status(500).send("Internal server error");
-    } else {
-      res.status(200).json(doc)
-    }
-  })
+  if (quantity < 0) {
+    videoModel.find(mongoQuery)
+    .sort({"updated_At": -1})
+    .exec(function (err, doc) {
+      if (err) {
+        commonLogger.error(`${err.message}`, {context: "mongo"});
+        res.status(404).send("Internal server error");
+      } else {
+        res.status(200).json(doc)
+      }
+    })
+  } else {
+    videoModel.find(mongoQuery)
+    .sort({"updated_At": -1})
+    .limit(quantity)
+    .exec(function (err, doc) {
+      if (err) {
+        commonLogger.error(`${err.message}`, {context: "mongo"});
+        res.status(404).send("Internal server error");
+      } else {
+        res.status(200).json(doc)
+      }
+    })
+  }
 })
 
 router.put("/", (req, res) => {
@@ -153,7 +169,7 @@ router.put("/", (req, res) => {
   
     videoModel.findByIdAndUpdate(videoID, updateQuery, function (err, doc) {
       if (err) {
-        commonLogger.error(`${err.message}`, {context: "minio"});
+        commonLogger.error(`${err.message}`, {context: "mongo"});
         res.status(500).send("Internal server error");
       } else {
         if (!doc) {

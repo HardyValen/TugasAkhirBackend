@@ -29,7 +29,7 @@ function listObject(server_id, log_severity, search_type, quantity, cb) {
       data.sort((a, b) => {a.basename > b.basename ? 1 : -1})
     }
 
-    cb(quantity == -1 ? data : data.slice(0, quantity), null);
+    cb((quantity < 0) ? data : data.slice(0, quantity), null);
   });
 
   listStream.on("error", err => {
@@ -110,8 +110,25 @@ router.get("/", (req, res) => {
   }
 })
 
-// router.get("/http", (req, res) => {
-//   res.status(200).send("http OK")
-// })
+router.get("/servers", (req, res) => {
+  let data = [];
+
+  let listStream = minioClient.listObjects(
+    process.env.MINIO_LOG_BUCKET_NAME
+  )
+
+  listStream.on("data", obj => {
+    data.push({name: path.basename(obj.prefix)})
+  })
+
+  listStream.on("end", () => {
+    console.log(data)
+    res.status(200).send(data);
+  });
+
+  listStream.on("error", err => {
+    res.status(500).send("Internal server error")
+  });
+})
 
 module.exports = router;

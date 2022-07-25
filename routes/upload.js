@@ -59,8 +59,9 @@ function uploadFile(req, res, next) {
     } else if (err) {
       commonLogger.error(`An unknown error occured when uploading: ${err.message}`, {context: "multer"});
       res.status(500).send("An error occured when uploading");
+    } else {
+      next();
     }
-    next();
   })
 }
 
@@ -81,7 +82,6 @@ router.post(
     }
   },
   async function(req, res) {
-
     let fieldname = req.body.fieldname;
     let tmpName = req.file.filename.split(".")[0];
     let tmpSource = path.join(SETTINGS.PROJECT_DIR, `.tmp/source/${req.file.filename}`);
@@ -124,7 +124,7 @@ router.post(
               // try {
               //   fs.unlinkSync(tmpSource);
               // } catch (error) {
-              //   console.error(error.message)
+              //   commonLogger.error(error.message, {context: "transcode"})
               // }
 
               if (error) {

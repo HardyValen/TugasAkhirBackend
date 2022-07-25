@@ -8,31 +8,32 @@
 
 // should i make an API to accelerate transcoding using system-installed ffmpeg?
 
-
 const {createFFmpeg, fetchFile} = require("@ffmpeg/ffmpeg");
 const path = require("path");
 const fs = require("fs");
 const commonLogger = require("../logfiles/commonLogger");
 const ffmpegErrors = require("./ffmpeg-errors");
+const ffmpegInstance = require("./ffmpeg");
 
 async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt, cb) {
   let isSuccess = true;
 
-  const ffmpeg = createFFmpeg({
-    logger: ({message}) => {
-      let x = 0;
-      // commonLogger.info(message, {context: "ffmpeg"});
-      ffmpegErrors.forEach(e => {
-        if (message.includes(e)) {
-          x++
-        }
-      })
-      if (x > 0) {
-        isSuccess = false
-        // commonLogger.error(message, {context: "ffmpeg"});
-      }
-    }
-  });
+  let ffmpeg = ffmpegInstance;
+  // let ffmpeg = createFFmpeg({
+  //   logger: ({message}) => {
+  //     let x = 0;
+  //     commonLogger.info(message, {context: "ffmpeg"});
+  //     ffmpegErrors.forEach(e => {
+  //       if (message.includes(e)) {
+  //         x++
+  //       }
+  //     })
+  //     if (x > 0) {
+  //       isSuccess = false
+  //       commonLogger.error(message, {context: "ffmpeg"});
+  //     }
+  //   }
+  // });
 
   commonLogger.info(`
     [FFMPEG] Filename : ${inputFileName}
@@ -47,9 +48,9 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
       const tmpName = `${tmpDir}${inputExt}`;
       const tmpOut = `${tmpDir}.mpd`;
 
-      // ffmpeg.setProgress(({ratio}) => {
-      //   commonLogger.info(`Progress: ${(ratio*100).toFixed(2)}%`, {context: "ffmpeg"})
-      // });
+      ffmpeg.setProgress(({ratio}) => {
+        console.log(`Progress: ${(ratio*100).toFixed(2)}%`)
+      });
 
       fs.mkdirSync(outputDir, {recursive: true});
       fs.chmodSync(outputDir, 0777);
@@ -120,6 +121,9 @@ async function transcodeVideoDash(inputFileName, inputPath, outputDir, inputExt,
   } catch (error) {
     cb(error);
   }
+  // finally {
+    // ffmpeg.exit()
+  // }
 }
 
 module.exports = transcodeVideoDash;
