@@ -7,6 +7,7 @@ const { status }    = require("../db/config");
 const crypto        = require("crypto");
 const fs            = require("fs");
 const os            = require("os");
+const commonLogger = require("../logfiles/commonLogger");
 
 router.get("/storage", (req, res) => {
   minioClient.listBuckets()
@@ -19,6 +20,7 @@ router.get("/storage", (req, res) => {
 })
 
 router.get("/db", (req, res) => {
+  commonLogger.info("Hello World!", {context: "debugging"})
   res.status(200).send(`Database name: ${status.name}, State: ${status.readyState}`)
 })
 

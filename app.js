@@ -11,7 +11,10 @@ db.dbconnect();
 
 const app           = express();
 
-app.use(logger(process.env.ENV));
+if (process.env.ENV === "production") {
+  app.use(logger(process.env.ENV));
+}
+app.use(logger("dev"));
 
 var uploadRouter  = require("./routes/upload");
 var vodRouter     = require("./routes/vod");

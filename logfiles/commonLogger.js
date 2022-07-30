@@ -36,6 +36,8 @@ if (process.env.ENV == "production") {
     level: "error"
   }))
 
+  commonLogger.add(new winston.transports.Console())
+
   const scheduler = new ToadScheduler();
   const task = new Task("monthly-common-logger-task", () => {
     let date = Date.now();

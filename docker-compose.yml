@@ -1,6 +1,6 @@
 services:
   ta-backend1:
-    image: ta-backend:alpine
+    image: hardy-ta-backend:alpine
     ports:
       - "9990:9999"
     env_file:
@@ -8,23 +8,23 @@ services:
     container_name: ta-backend-1
     network_mode: bridge
 
-  ta-backend2:
-    image: ta-backend:alpine
-    ports:
-      - 9991:9999
-    env_file:
-      - ./env/2.env
-    container_name: ta-backend-2
-    network_mode: bridge
+  # ta-backend2:
+  #   image: ta-backend:alpine
+  #   ports:
+  #     - 9991:9999
+  #   env_file:
+  #     - ./env/2.env
+  #   container_name: ta-backend-2
+  #   network_mode: bridge
 
-  ta-backend3:
-    image: ta-backend:alpine
-    ports:
-      - 9992:9999
-    env_file:
-      - ./env/3.env
-    container_name: ta-backend-3
-    network_mode: bridge
+  # ta-backend3:
+  #   image: ta-backend:alpine
+  #   ports:
+  #     - 9992:9999
+  #   env_file:
+  #     - ./env/3.env
+  #   container_name: ta-backend-3
+  #   network_mode: bridge
 
   # ta-backend4:
   #   image: ta-backend:alpine

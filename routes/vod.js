@@ -22,6 +22,7 @@ router.get(
         videoModel.findById(id, function (err, doc) {        
           if (err) {
             commonLogger.error(`${err.message}`, {context: "minio"});
+            console.log(`${err.message}`)
             res.status(500).send("Internal server error");
           } else {
             // if null
@@ -49,7 +50,7 @@ router.get(
                   outputFile,
                   async (err) => {
                     if (err) {
-                      commonLogger.log(err, {context: "vod"})
+                      commonLogger.error(err, {context: "vod"})
                       res.status(500).send("Internal server error")
                     } else {
                       res.status(200).sendFile(outputFile, () => {
@@ -118,7 +119,7 @@ router.get("/results", (req, res) => {
   }
 
   if (searchQuery) {
-    mongoQuery.fieldname = searchQuery
+    mongoQuery.fieldname = new RegExp(`.*${searchQuery}.*`)
   }
 
   if (quantity < 0) {
@@ -148,6 +149,7 @@ router.get("/results", (req, res) => {
 })
 
 router.put("/", (req, res) => {
+  console.log(req.body)
   let videoID = req.body.id
   let fieldname = req.body.fieldname
   let videoDescription = req.body.videoDescription
