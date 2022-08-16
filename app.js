@@ -16,10 +16,11 @@ if (process.env.ENV === "production") {
 }
 app.use(logger("dev"));
 
-var uploadRouter  = require("./routes/upload");
-var vodRouter     = require("./routes/vod");
-var debugRouter   = require("./routes/debug");
-var logRouter     = require("./routes/log");
+const uploadRouter    = require("./routes/upload");
+const vodRouter       = require("./routes/vod");
+const debugRouter     = require("./routes/debug");
+const logRouter       = require("./routes/log");
+const analyticsRouter = require("./routes/analytics");
 
 app.use(cors());
 app.use(express.json());
@@ -32,6 +33,7 @@ app.use('/debug', debugRouter);
 app.use('/upload', uploadRouter);
 app.use('/vod', vodRouter);
 app.use("/log", logRouter);
+app.use("/analytics", analyticsRouter);
 
 // Clean .tmp if database has been connected, check ./db/config file for more info
 module.exports = app;

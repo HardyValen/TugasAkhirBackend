@@ -20,7 +20,6 @@ router.get("/storage", (req, res) => {
 })
 
 router.get("/db", (req, res) => {
-  commonLogger.info("Hello World!", {context: "debugging"})
   res.status(200).send(`Database name: ${status.name}, State: ${status.readyState}`)
 })
 
