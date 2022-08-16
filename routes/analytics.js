@@ -9,7 +9,7 @@ router.post(
   "/",
   async function(req, res) {
     let analytics = await new analyticsModel({
-      data: req.body,
+      data: req.body.analytics,
       createdAt: Date.now(),
       updatedAt: Date.now()
     })
@@ -19,7 +19,7 @@ router.post(
         res.status(500).send(error.message);
       } else {
         commonLogger.info(`Analytics accepted with ID: ${data.id}`, {context: "mongo"})
-        res.status(200).send("Analytics accepted.")
+        res.status(200).send(`Analytics accepted with ID: ${data.id}`)
       }
     })
   }

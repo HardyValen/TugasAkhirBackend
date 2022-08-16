@@ -24,7 +24,10 @@ router.get("/db", (req, res) => {
 })
 
 router.get("/spec", (req, res) => {
-  res.status(200).json(process.env.SERVER_ID);
+  res.status(200).json({
+    id: process.env.SERVER_ID,
+    build: "22w33d2a"
+  });
 })
 
 // router.get("/random", (req, res) => {

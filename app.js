@@ -23,11 +23,12 @@ const logRouter       = require("./routes/log");
 const analyticsRouter = require("./routes/analytics");
 
 app.use(cors());
-app.use(express.json());
 app.use(express.urlencoded({ extended: false}));
-app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended:true}));
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: "64mb"}));
+app.use(bodyParser.text({limit: "64mb"}));
+app.use(cookieParser());
+app.use(express.json());
 
 app.use('/debug', debugRouter);
 app.use('/upload', uploadRouter);
